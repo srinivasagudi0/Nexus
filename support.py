@@ -19,9 +19,25 @@ def analyze_file_code(code):
     response = client.chat.completions.create(
         model="gpt-4o",
         messages=[
-            {"role": "system", "content": "You are a helpful assistant that analyzes code."},
-            {"role": "user", "content": f"Analyze the following code:\n\n{code}"}
-        ]
+            {
+                "role": "system",
+                "content": (
+                    "You are a senior code reviewer. Return analysis in exactly this order:\n"
+                    "Summary:\n"
+                    "- ...\n\n"
+                    "Risks:\n"
+                    "- ...\n\n"
+                    "Suggestions:\n"
+                    "- ...\n\n"
+                    "Use short bullet points. If nothing is notable in a section, write '- None'. "
+                    "Do not add extra headings."
+                ),
+            },
+            {
+                "role": "user",
+                "content": f"Analyze the following code:\n\n{code}",
+            },
+        ],
     )
     return response.choices[0].message.content
 
@@ -54,4 +70,4 @@ def extract_zip(file):
                             code += content.decode("utf-8", errors="ignore") + "\n"
                         else:
                             code += str(content) + "\n"
-            return code 
+            return code
