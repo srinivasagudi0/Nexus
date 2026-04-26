@@ -1,5 +1,11 @@
 import streamlit as st
 from support import *
+import os
+
+# check if there is API key in environment variable if not ask user to go set it up
+if "OPENAI_API_KEY" not in os.environ:
+    st.warning("Please set up your OpenAI API key in the environment variable OPENAI_API_KEY to use this app.")
+    st.stop()
 
 st.title("Nexus AI")
 #upload box
