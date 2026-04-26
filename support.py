@@ -24,3 +24,34 @@ def analyze_file_code(code):
         ]
     )
     return response.choices[0].message.content
+
+
+# extract zip file and return the code in the zip file as a string
+def extract_zip(file):
+    import zipfile
+    import io
+
+    if hasattr(file, "read"):
+        with zipfile.ZipFile(io.BytesIO(file.read())) as z:
+            code = ""
+            for filename in z.namelist():
+                if filename.endswith((".py", ".txt")):
+                    with z.open(filename) as f:
+                        content = f.read()
+                        if isinstance(content, bytes):
+                            code += content.decode("utf-8", errors="ignore") + "\n"
+                        else:
+                            code += str(content) + "\n"
+            return code
+    else:
+        with zipfile.ZipFile(file, "r") as z:
+            code = ""
+            for filename in z.namelist():
+                if filename.endswith((".py", ".txt")):
+                    with z.open(filename) as f:
+                        content = f.read()
+                        if isinstance(content, bytes):
+                            code += content.decode("utf-8", errors="ignore") + "\n"
+                        else:
+                            code += str(content) + "\n"
+            return code 
