@@ -3,6 +3,7 @@ from support import *
 
 st.title("Nexus AI")
 #upload box
+st.write("If you want to analyze projects that are with multiple files, please zip the project and upload the zip file.")
 code = st.file_uploader("Upload Code")
 if code is not None:
     if st.button("Analyze"):
@@ -16,4 +17,3 @@ if code is not None:
         )
         st.subheader("Code Analysis:")
         st.code(explanation)
-        
