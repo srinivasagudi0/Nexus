@@ -1,5 +1,6 @@
 import streamlit as st
 from support import *
+from support import edit_task_dialog
 import os
 from app_db import create_tables, add_project, get_projects, get_project_by_id
 
