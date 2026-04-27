@@ -1,76 +1,83 @@
-# We will be storing the data in sqlite and In the file named 'app.db'
+import streamlit as st
+from support import *
+import os
+from app_db import create_tables, add_project, get_projects, get_project_by_id
 
-#Define the SQLite schema with three linked tables: projects, tasks (belongs to projects), and logs(belongs to tasks).
-import sqlite3  
-import streamlit
+# check if there is API key in environment variable if not ask user to go set it up
+if "OPENAI_API_KEY" not in os.environ:
+    st.warning("Please set up your OpenAI API key in the environment variable OPENAI_API_KEY to use this app.")
+    st.stop()
 
-@st.cache_resource
-def get_db_connection():
-    """Create a database connection that can be used across all threads"""
-    return sqlite3.connect('app.db', check_same_thread=False)
+# now that openai exists, lets set up db if not exists
+create_tables()
 
-def create_tables():
-    conn = get_db_connection()
-    cur = conn.cursor()
+st.title("Nexus AI")
+st.caption("Nexus AI only .py, .txt, and .zip")
 
-    cur.execute("PRAGMA foreign_keys = ON;")
 
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS projects (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            description TEXT,
-            created_at TEXT DEFAULT (datetime('now')),
-            updated_at TEXT DEFAULT (datetime('now'))
-        );
-    """)
+mode = st.sidebar.selectbox("Select Mode", ["Choose a mode","Code Analysis", "Project Management"])
 
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS tasks (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            project_id INTEGER NOT NULL,
-            title TEXT NOT NULL,
-            details TEXT,
-            status TEXT NOT NULL DEFAULT 'pending',
-            created_at TEXT DEFAULT (datetime('now')),
-            updated_at TEXT DEFAULT (datetime('now')),
-            FOREIGN KEY (project_id) REFERENCES projects(id)
-        );
-    """)
+if mode == "Code Analysis":    
+    #upload box
+    st.write("If you want to analyze projects that are with multiple files, please zip the project and upload the zip file.")
+    code = st.file_uploader("Upload Code", type=["py", "txt", "zip"])
+    if code is not None:
+        if st.button("Analyze"):
+            filename = (getattr(code, "name", "") or "").lower()
+            if filename.endswith(".zip"):
+                extracted_code = extract_zip(code)
+            else:
+                extracted_code = extract_code(code)
 
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS logs (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            task_id INTEGER NOT NULL,
-            message TEXT NOT NULL,
-            created_at TEXT DEFAULT (datetime('now')),
-            FOREIGN KEY (task_id) REFERENCES tasks(id)
-        );
-    """)
+            explanation = analyze_file_code(extracted_code)
+            st.download_button(
+                label="Download Explanation",
+                data=explanation,
+                file_name="code_analysis.txt",
+                mime="text/plain"
+            )
+            st.subheader("Code Analysis:")
+            st.code(explanation)
 
-    conn.commit()
+if mode == "Project Management":
+    # we can make so it asks if the project is new or already created so this wont happen and is kinda cool ig
+    st.write("This feature is coming soon. Stay tuned! Placeholder for now even thouhg there is stuff.")
+    mode = st.selectbox("Select Project Mode", ["Choose a mode","Create a New Project", "View Existing Projects"])
+    if mode == 'Create A New Project':
+        st.subheader("Create a New Project")
+        project_name = st.text_input("Project Name")
+        project_description = st.text_area("Project Description")
+        tasks_input = st.text_area("Tasks (one per line, format(please follow for now): title|details|status)")
+        if st.button("Create Project"):
+            if project_name and tasks_input and project_description:
+                tasks = []
+                for line in tasks_input.splitlines():
+                    parts = line.split("|")
+                    if len(parts) >= 2:
+                        task = {
+                            "title": parts[0].strip(),
+                            "details": parts[1].strip(),
+                            "status": parts[2].strip() if len(parts) > 2 else "pending"
+                        }
+                        tasks.append(task)
+                add_project(project_name, project_description, tasks)
+                st.success("Project created successfully!")
+            else:
+                st.error("Please provide a project name and at least one task.")
+    if mode == 'View Existing Projects':
+        # now lets go retrive the projects
+        projects_for_selectbox = get_projects()[0]
+        project_id = st.selectbox("Select a Project", options=projects_for_selectbox)
+        if project_id:
+            project = get_project_by_id(project_id)
+            if project:
+                st.subheader("Project Details")
+                st.write(f"**Name:** {project['name']}")
+                st.write(f"**Description:** {project['description']}")
+                st.write(f"**Created At:** {project['created_at']}")
+                st.write(f"**Updated At:** {project['updated_at']}")
+                st.write("**Tasks:**")
+                for task in project['tasks']:
+                    st.write(f"- {task['title']} (Status: {task['status']})")
+    ## now that db is set and sent some projects into it
 
-# to add a project into a db, we need name, description, tasks, and logs(is optional) 
-# i guess the is goood enough for now, I will test it out later, I will go call into app.py now anyways
-def add_project(name, description, tasks):
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute("INSERT INTO projects (name, description) VALUES (?, ?)", (name, description))
-    project_id = cur.lastrowid
-
-    for task in tasks:
-        title = task['title']
-        details = task.get('details', '')
-        status = task.get('status', 'pending')
-        cur.execute("INSERT INTO tasks (project_id, title, details, status) VALUES (?, ?, ?, ?)", 
-                    (project_id, title, details, status))
-        task_id = cur.lastrowid
-
-        logs = task.get('logs', [])
-        for log in logs:
-            message = log['message']
-            cur.execute("INSERT INTO logs (task_id, message) VALUES (?, ?)", (task_id, message))
-
-    conn.commit()
-
-##### GO CALL IT IN APP.py when you have time, which is probably next period
