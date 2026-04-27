@@ -45,4 +45,25 @@ def create_tables(conn):
     """)
 
     conn.commit()
-    conn.close()
+
+# to add a project into a db, we need name, description, tasks, and logs(is optional) 
+# i guess the is goood enough for now, I will test it out later, I will go call into app.py now anyways
+def add_project(conn, name, description, tasks):
+    cur = conn.cursor()
+    cur.execute("INSERT INTO projects (name, description) VALUES (?, ?)", (name, description))
+    project_id = cur.lastrowid
+
+    for task in tasks:
+        title = task['title']
+        details = task.get('details', '')
+        status = task.get('status', 'pending')
+        cur.execute("INSERT INTO tasks (project_id, title, details, status) VALUES (?, ?, ?, ?)", 
+                    (project_id, title, details, status))
+        task_id = cur.lastrowid
+
+        logs = task.get('logs', [])
+        for log in logs:
+            message = log['message']
+            cur.execute("INSERT INTO logs (task_id, message) VALUES (?, ?)", (task_id, message))
+
+    conn.commit()
