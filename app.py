@@ -43,7 +43,9 @@ if mode == "Project Management":
     # we can make so it asks if the project is new or already created so this wont happen and is kinda cool ig
     st.write("This feature is coming soon. Stay tuned! Placeholder for now even thouhg there is stuff.")
     mode = st.selectbox("Select Project Mode", ["Choose a mode", "Create a New Project", "View Existing Projects"])
-    if mode == 'Create A New Project':
+    
+    
+    if mode == 'Create a New Project':
         st.subheader("Create a New Project")
         project_name = st.text_input("Project Name")
         project_description = st.text_area("Project Description")
@@ -64,6 +66,7 @@ if mode == "Project Management":
                 st.success("Project created successfully!")
             else:
                 st.error("Please provide a project name and at least one task.")
+    
     if mode == 'View Existing Projects':
         # now lets go retrive the projects
         projects_for_selectbox = get_projects()
