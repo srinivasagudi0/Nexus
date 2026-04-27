@@ -1,7 +1,7 @@
 import streamlit as st
 from support import *
 import os
-from app_db import conn, create_tables, add_project
+from app_db import create_tables, add_project
 
 # check if there is API key in environment variable if not ask user to go set it up
 if "OPENAI_API_KEY" not in os.environ:
@@ -9,7 +9,7 @@ if "OPENAI_API_KEY" not in os.environ:
     st.stop()
 
 # now that openai exists, lets set up db if not exists
-create_tables(conn)
+create_tables()
 
 st.title("Nexus AI")
 st.caption("Nexus AI only .py, .txt, and .zip")
@@ -58,7 +58,7 @@ if mode == "Project Management":
                         "status": parts[2].strip() if len(parts) > 2 else "pending"
                     }
                     tasks.append(task)
-            add_project(conn, project_name, project_description, tasks)
+            add_project(project_name, project_description, tasks)
             st.success("Project created successfully!")
         else:
             st.error("Please provide a project name and at least one task.")
