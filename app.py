@@ -82,6 +82,8 @@ if mode == "Project Management":
                 st.write(f"**Created At:** {project['created_at']}")
                 st.write(f"**Updated At:** {project['updated_at']}")
                 st.write("**Tasks:**")
+                # js that if it not new lines, it would crash, will work on it soon
+                
                 for task in project['tasks']:
                     st.write(f"- {task['title']} (Status: {task['status']})")
     ## now that db is set and sent some projects into it
