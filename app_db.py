@@ -67,3 +67,5 @@ def add_project(conn, name, description, tasks):
             cur.execute("INSERT INTO logs (task_id, message) VALUES (?, ?)", (task_id, message))
 
     conn.commit()
+
+##### GO CALL IT IN APP.py when you have time, which is probably next period
