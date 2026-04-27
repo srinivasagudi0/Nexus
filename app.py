@@ -1,7 +1,7 @@
 import streamlit as st
 from support import *
 import os
-from app_db import conn, create_tables
+from app_db import conn, create_tables, add_project
 
 # check if there is API key in environment variable if not ask user to go set it up
 if "OPENAI_API_KEY" not in os.environ:
@@ -38,3 +38,28 @@ if mode == "Code Analysis":
             )
             st.subheader("Code Analysis:")
             st.code(explanation)
+
+if mode == "Project Management":
+    # we can make so it asks if the project is new or already created so this wont happen and is kinda cool ig
+    st.write("This feature is coming soon. Stay tuned! Placeholder for now even thouhg there is stuff.")
+    st.subheader("Create a New Project")
+    project_name = st.text_input("Project Name")
+    project_description = st.text_area("Project Description")
+    tasks_input = st.text_area("Tasks (one per line, format(please follow for now): title|details|status)")
+    if st.button("Create Project"):
+        if project_name and tasks_input and project_description:
+            tasks = []
+            for line in tasks_input.splitlines():
+                parts = line.split("|")
+                if len(parts) >= 2:
+                    task = {
+                        "title": parts[0].strip(),
+                        "details": parts[1].strip(),
+                        "status": parts[2].strip() if len(parts) > 2 else "pending"
+                    }
+                    tasks.append(task)
+            add_project(conn, project_name, project_description, tasks)
+            st.success("Project created successfully!")
+        else:
+            st.error("Please provide a project name and at least one task.")
+    
