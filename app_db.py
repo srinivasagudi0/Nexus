@@ -2,7 +2,7 @@
 
 #Define the SQLite schema with three linked tables: projects, tasks (belongs to projects), and logs(belongs to tasks).
 import sqlite3  
-import streamlit
+import streamlit as st
 
 @st.cache_resource
 def get_db_connection():
