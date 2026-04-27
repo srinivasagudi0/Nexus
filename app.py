@@ -76,14 +76,7 @@ if mode == "Project Management":
             project_id = project_dict[selected_project]
             project = get_project_by_id(project_id)
             if project:
-                left, right = st.columns(2)
-                with left:
-                    st.subheader("Project Details")
-                with right:
-                    if st.button("Edit🛠️ (Coming Soon!)"):
-                        st.info("Edit functionality is coming soon!")
-                        edit_task_dialog(project['id'])
-                st.markdown("---")
+                st.subheader("Project Details")
 
 
                 st.write(f"**Name:** {project['name']}")
@@ -93,5 +86,10 @@ if mode == "Project Management":
                 st.write("**Tasks:**")
                 # There is some problem right here try to fix it later, but now work on edit.
                 for task in project['tasks']:
-                    st.write(f"- {task['title']} (Status: {task['status']})")
+                    col1, col2 = st.columns([3, 1])
+                    with col1:
+                        st.write(f"- {task[1]} (Status: {task[3]})")
+                    with col2:
+                        if st.button(f"Edit ✏️", key=f"edit_{task[0]}"):
+                            edit_task_dialog(task)
     ## now that db is set and sent some projects into it shoudl be able to retrieve and view them here, next up is to make it

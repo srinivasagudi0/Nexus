@@ -75,17 +75,18 @@ def extract_zip(file):
             return code
 
 @st.dialog("Edit Task")
-def edit_task_dialog(task_id):
-    task = get_project_by_id(task_id)
-    if not task:
-        st.error("Task not found.")
-        return
+def edit_task_dialog(task):
+    # task is a tuple: (id, title, details, status, created_at, updated_at)
+    task_id = task[0]
+    task_title = task[1]
+    task_details = task[2]
+    task_status = task[3]
 
-    new_title = st.text_input("Title", value=task['title'])
-    new_details = st.text_area("Details", value=task['details'])
-    new_status = st.selectbox("Status", ["pending", "in progress", "completed"], index=["pending", "in progress", "completed"].index(task['status']))
+    new_title = st.text_input("Title", value=task_title)
+    new_details = st.text_area("Details", value=task_details)
+    new_status = st.selectbox("Status", ["pending", "in progress", "completed"], index=["pending", "in progress", "completed"].index(task_status))
 
     if st.button("Save Changes"):
-        update_task(task['id'], new_title, new_details, new_status)
+        update_task(task_id, new_title, new_details, new_status)
         st.success("Task updated successfully!")
         
