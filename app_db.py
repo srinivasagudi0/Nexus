@@ -106,3 +106,32 @@ def get_project_by_id(project_id):
         "tasks": tasks
     }
 
+
+def update_task(task_id, title=None, details=None, status=None):
+    """Update a task's title, details, or status"""
+    conn = get_db_connection()
+    cur = conn.cursor()
+    
+    updates = []
+    params = []
+    
+    if title is not None:
+        updates.append("title = ?")
+        params.append(title)
+    if details is not None:
+        updates.append("details = ?")
+        params.append(details)
+    if status is not None:
+        updates.append("status = ?")
+        params.append(status)
+    
+    if not updates:
+        return  # Nothing to update
+    
+    params.append(task_id)
+    query = f"UPDATE tasks SET {', '.join(updates)}, updated_at = datetime('now') WHERE id = ?"
+    cur.execute(query, params)
+    conn.commit()
+    # forgot which one to close so closed both
+    cur.close()
+    conn.close()

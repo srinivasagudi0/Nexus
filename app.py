@@ -83,6 +83,11 @@ if mode == "Project Management":
                     if st.button("Edit🛠️ (Coming Soon!)"):
                         ####HERE YOU WRITE CODE####
                         st.info("Edit functionality is coming soon!")
+                        #get the prokect id for the project that is being seen
+                        id = project['id']
+                        edit_task_dialog(id)
+                st.markdown("---")
+
 
                 st.write(f"**Name:** {project['name']}")
                 st.write(f"**Description:** {project['description']}")
@@ -92,5 +97,4 @@ if mode == "Project Management":
                 # There is some problem right here try to fix it later, but now work on edit.
                 for task in project['tasks']:
                     st.write(f"- {task['title']} (Status: {task['status']})")
-    ## now that db is set and sent some projects into it shoudl be able to retrieve and view them here, next up is to make it 
-# 
+    ## now that db is set and sent some projects into it shoudl be able to retrieve and view them here, next up is to make it

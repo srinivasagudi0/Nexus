@@ -1,5 +1,7 @@
 from openai import OpenAI
 import os
+import streamlit as st
+from app_db import update_task
 
 # extract the code from the file
 def extract_code(file):
@@ -71,3 +73,14 @@ def extract_zip(file):
                         else:
                             code += str(content) + "\n"
             return code
+
+@st.dialog
+def edit_task_dialog(task):
+    new_title = st.text_input("Title", value=task['title'])
+    new_details = st.text_area("Details", value=task['details'])
+    new_status = st.selectbox("Status", ["pending", "in progress", "completed"], index=["pending", "in progress", "completed"].index(task['status']))
+
+    if st.button("Save Changes"):
+        update_task(task['id'], new_title, new_details, new_status)
+        st.success("Task updated successfully!")
+        
