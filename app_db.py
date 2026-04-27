@@ -2,11 +2,15 @@
 
 #Define the SQLite schema with three linked tables: projects, tasks (belongs to projects), and logs(belongs to tasks).
 import sqlite3  
+import streamlit
 
-conn = sqlite3.connect('app.db')
+@st.cache_resource
+def get_db_connection():
+    """Create a database connection that can be used across all threads"""
+    return sqlite3.connect('app.db', check_same_thread=False)
 
-
-def create_tables(conn):
+def create_tables():
+    conn = get_db_connection()
     cur = conn.cursor()
 
     cur.execute("PRAGMA foreign_keys = ON;")
@@ -48,7 +52,8 @@ def create_tables(conn):
 
 # to add a project into a db, we need name, description, tasks, and logs(is optional) 
 # i guess the is goood enough for now, I will test it out later, I will go call into app.py now anyways
-def add_project(conn, name, description, tasks):
+def add_project(name, description, tasks):
+    conn = get_db_connection()
     cur = conn.cursor()
     cur.execute("INSERT INTO projects (name, description) VALUES (?, ?)", (name, description))
     project_id = cur.lastrowid
