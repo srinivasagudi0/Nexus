@@ -70,8 +70,10 @@ if mode == "Project Management":
     if mode == 'View Existing Projects':
         # now lets go retrive the projects
         projects_for_selectbox = get_projects()
-        project_id = st.selectbox("Select a Project", options=projects_for_selectbox)
-        if project_id:
+        project_dict = {f"{proj[1]}" : proj[0] for proj in projects_for_selectbox}
+        selected_project = st.selectbox("Select a Project", options=project_dict.keys())
+        if selected_project:
+            project_id = project_dict[selected_project]
             project = get_project_by_id(project_id)
             if project:
                 st.subheader("Project Details")
