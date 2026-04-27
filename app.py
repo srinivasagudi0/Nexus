@@ -66,7 +66,7 @@ if mode == "Project Management":
                 st.error("Please provide a project name and at least one task.")
     if mode == 'View Existing Projects':
         # now lets go retrive the projects
-        projects_for_selectbox = get_projects()[0]
+        projects_for_selectbox = get_projects()
         project_id = st.selectbox("Select a Project", options=projects_for_selectbox)
         if project_id:
             project = get_project_by_id(project_id)
