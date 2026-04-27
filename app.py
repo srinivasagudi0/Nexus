@@ -1,8 +1,7 @@
 import streamlit as st
 from support import *
-from support import edit_task_dialog
 import os
-from app_db import create_tables, add_project, get_projects, get_project_by_id
+from app_db import create_tables, add_project, get_projects, get_project_by_id, update_task
 
 # check if there is API key in environment variable if not ask user to go set it up
 if "OPENAI_API_KEY" not in os.environ:
