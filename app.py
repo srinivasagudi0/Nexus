@@ -76,15 +76,21 @@ if mode == "Project Management":
             project_id = project_dict[selected_project]
             project = get_project_by_id(project_id)
             if project:
-                st.subheader("Project Details")
+                left, right = st.columns(2)
+                with left:
+                    st.subheader("Project Details")
+                with right:
+                    if st.button("Edit🛠️ (Coming Soon!)"):
+                        ####HERE YOU WRITE CODE####
+                        st.info("Edit functionality is coming soon!")
+
                 st.write(f"**Name:** {project['name']}")
                 st.write(f"**Description:** {project['description']}")
                 st.write(f"**Created At:** {project['created_at']}")
                 st.write(f"**Updated At:** {project['updated_at']}")
                 st.write("**Tasks:**")
-                # js that if it not new lines, it would crash, will work on it soon
-                
+                # There is some problem right here try to fix it later, but now work on edit.
                 for task in project['tasks']:
                     st.write(f"- {task['title']} (Status: {task['status']})")
-    ## now that db is set and sent some projects into it
-
+    ## now that db is set and sent some projects into it shoudl be able to retrieve and view them here, next up is to make it 
+# 
