@@ -135,3 +135,28 @@ def update_task(task_id, title=None, details=None, status=None):
     # forgot which one to close so closed both
     cur.close()
     conn.close()
+
+def update_project(project_id, name=None, description=None):
+    """Update a project's name or description"""
+    conn = get_db_connection()
+    cur = conn.cursor()
+    
+    updates = []
+    params = []
+    
+    if name is not None:
+        updates.append("name = ?")
+        params.append(name)
+    if description is not None:
+        updates.append("description = ?")
+        params.append(description)
+    
+    if not updates:
+        return  # Nothing to update
+    
+    params.append(project_id)
+    query = f"UPDATE projects SET {', '.join(updates)}, updated_at = datetime('now') WHERE id = ?"
+    cur.execute(query, params)
+    conn.commit()
+    cur.close()
+    conn.close()

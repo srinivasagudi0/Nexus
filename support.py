@@ -1,7 +1,7 @@
 from openai import OpenAI
 import os
 import streamlit as st
-from app_db import update_task, get_project_by_id
+from app_db import update_task, get_project_by_id, update_project
 
 # extract the code from the file
 def extract_code(file):
@@ -89,4 +89,18 @@ def edit_task_dialog(task):
     if st.button("Save Changes"):
         update_task(task_id, new_title, new_details, new_status)
         st.success("Task updated successfully!")
-        
+# this shit doesnt work so lets move on and come back later
+
+@st.dialog("Edit Project")
+def edit_project_dialog(project):
+    # project is a tuple: (id, name, description, created_at, updated_at)
+    project_id = project[0]
+    project_name = project[1]
+    project_description = project[2]
+
+    new_name = st.text_input("Name", value=project_name)
+    new_description = st.text_area("Description", value=project_description)
+
+    if st.button("Save Changes"):
+        update_project(project_id, new_name, new_description)
+        st.success("Project updated successfully!")
