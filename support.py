@@ -76,7 +76,7 @@ def extract_zip(file):
 
 @st.dialog("Edit Task")
 def edit_task_dialog(task_id):
-    task = get_task_by_id(task_id)
+    task = get_project_by_id(task_id)
     if not task:
         st.error("Task not found.")
         return
