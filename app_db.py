@@ -64,6 +64,7 @@ def add_project(name, description, tasks):
         title = task['title']
         details = task.get('details', '')
         status = task.get('status', 'pending')
+
         cur.execute("INSERT INTO tasks (project_id, title, details, status) VALUES (?, ?, ?, ?)", 
                     (project_id, title, details, status))
         task_id = cur.lastrowid
@@ -133,6 +134,7 @@ def update_task(task_id, title=None, details=None, status=None):
     params.append(task_id)
     query = f"UPDATE tasks SET {', '.join(updates)}, updated_at = datetime('now') WHERE id = ?"
     cur.execute(query, params)
+    cur.execute("UPDATE projects SET updated_at = datetime('now') WHERE id = (SELECT project_id FROM tasks WHERE id = ?)", (task_id,))
     conn.commit()
     # forgot which one to close so closed both
     # i shouldnt have to close the connection here because it is cached and shared across threads, closing it would cause issues when other parts of the app try to use it later, so I will just close the cursor and leave the connection open for reuse.    
