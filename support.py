@@ -3,6 +3,8 @@ import os
 import streamlit as st
 from app_db import update_task, get_project_by_id, update_project
 
+
+
 # extract the code from the file
 def extract_code(file):
     # Streamlit uploader returns an UploadedFile-like object with a .read() method.
@@ -94,9 +96,9 @@ def edit_task_dialog(task):
 @st.dialog("Edit Project")
 def edit_project_dialog(project):
     # project is a tuple: (id, name, description, created_at, updated_at)
-    project_id = project['id']
-    project_name = project['name']
-    project_description = project['description']
+    project_id = project[0]
+    project_name = project[1]
+    project_description = project[2]
 
     new_name = st.text_input("Name", value=project_name)
     new_description = st.text_area("Description", value=project_description)
