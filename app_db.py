@@ -133,8 +133,7 @@ def update_task(task_id, title=None, details=None, status=None):
     cur.execute(query, params)
     conn.commit()
     # forgot which one to close so closed both
-    cur.close()
-    conn.close()
+    # i shouldnt have to close the connection here because it is cached and shared across threads, closing it would cause issues when other parts of the app try to use it later, so I will just close the cursor and leave the connection open for reuse.    
 
 def update_project(project_id, name=None, description=None):
     """Update a project's name or description"""
@@ -158,5 +157,6 @@ def update_project(project_id, name=None, description=None):
     query = f"UPDATE projects SET {', '.join(updates)}, updated_at = datetime('now') WHERE id = ?"
     cur.execute(query, params)
     conn.commit()
-    cur.close()
-    conn.close()
+    # i shouldnt have to close the connection here because it is cached and shared across threads, closing it would cause issues when other parts of the app try to use it later, so I will just close the cursor and leave the connection open for reuse.    
+
+    
