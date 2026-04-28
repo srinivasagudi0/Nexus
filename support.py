@@ -93,10 +93,10 @@ def edit_task_dialog(task):
 
 @st.dialog("Edit Project")
 def edit_project_dialog(project):
-    # project is a tuple: (id, name, description, created_at, updated_at)
-    project_id = project[0]
-    project_name = project[1]
-    project_description = project[2]
+    # project is a dict with keys: id, name, description, created_at, updated_at
+    project_id = project['id']
+    project_name = project['name']
+    project_description = project['description']
 
     new_name = st.text_input("Name", value=project_name)
     new_description = st.text_area("Description", value=project_description)

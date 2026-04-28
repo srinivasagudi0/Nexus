@@ -80,9 +80,8 @@ if mode == "Project Management":
                 with left:
                     st.subheader("Project Details")
                 with right:
-                    if st.button("Edit🛠️ (Coming Soon!)"):
-                        st.info("Edit functionality is coming soon!")
-                        edit_task_dialog(project['id'])
+                    if st.button("Edit🛠️"):
+                        edit_project_dialog(project)
                 st.markdown("---")
 
 

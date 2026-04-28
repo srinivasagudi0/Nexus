@@ -132,9 +132,6 @@ def update_task(task_id, title=None, details=None, status=None):
     query = f"UPDATE tasks SET {', '.join(updates)}, updated_at = datetime('now') WHERE id = ?"
     cur.execute(query, params)
     conn.commit()
-    # forgot which one to close so closed both
-    cur.close()
-    conn.close()
 
 def update_project(project_id, name=None, description=None):
     """Update a project's name or description"""
@@ -158,5 +155,3 @@ def update_project(project_id, name=None, description=None):
     query = f"UPDATE projects SET {', '.join(updates)}, updated_at = datetime('now') WHERE id = ?"
     cur.execute(query, params)
     conn.commit()
-    cur.close()
-    conn.close()
