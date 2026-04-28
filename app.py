@@ -84,7 +84,7 @@ if mode == "Project Management":
                 with right:
                     if st.button("Edit🛠️ (Coming Soon!)"):
                         st.info("Edit functionality is coming soon!")
-                        edit_project_dialog(project['id'])
+                        edit_project_dialog(projects_for_selectbox)
                 st.markdown("---")
 
 
