@@ -7,13 +7,15 @@ import streamlit as st
 @st.cache_resource
 def get_db_connection():
     """Create a database connection that can be used across all threads"""
-    return sqlite3.connect('app.db', check_same_thread=False)
+    conn = sqlite3.connect('app.db', check_same_thread=False)
+    conn.execute("PRAGMA foreign_keys = ON;")
+    return conn
 
 def create_tables():
     conn = get_db_connection()
     cur = conn.cursor()
 
-    cur.execute("PRAGMA foreign_keys = ON;")
+    # added it in get_db_connection
 
     cur.execute("""
         CREATE TABLE IF NOT EXISTS projects (
