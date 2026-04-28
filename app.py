@@ -1,7 +1,7 @@
 import streamlit as st
 from support import *
 import os
-from app_db import create_tables, add_project, get_projects, get_project_by_id, update_task
+from app_db import create_tables, add_project, get_projects, get_project_by_id, edit_task_dialog, edit_project_dialog
 
 # check if there is API key in environment variable if not ask user to go set it up
 if "OPENAI_API_KEY" not in os.environ:
@@ -82,7 +82,7 @@ if mode == "Project Management":
                 with right:
                     if st.button("Edit🛠️ (Coming Soon!)"):
                         st.info("Edit functionality is coming soon!")
-                        edit_task_dialog(project['id'])
+                        edit_project_dialog(project['id'])
                 st.markdown("---")
 
 
