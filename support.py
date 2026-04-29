@@ -79,15 +79,18 @@ def extract_zip(file):
 @st.dialog("Edit Task")
 def edit_task_dialog(task):
     # task is a tuple: (id, title, details, status, created_at, updated_at)
-    task_id = task['id']
-    task_title = task['name']
+    task_id = task[0]
+    task_title = task[1]
     task_details = task[2]
     task_status = task[3]
-    # odnt care about his now, wil come back later.
 
     new_title = st.text_input("Title", value=task_title)
     new_details = st.text_area("Details", value=task_details)
-    new_status = st.selectbox("Status", ["pending", "in progress", "completed"], index=["pending", "in progress", "completed"].index(task_status))
+    new_status = st.selectbox(
+        "Status",
+        ["pending", "in progress", "completed"],
+        index=["pending", "in progress", "completed"].index(task_status),
+    )
 
     if st.button("Save Changes"):
         update_task(task_id, new_title, new_details, new_status)
@@ -96,10 +99,10 @@ def edit_task_dialog(task):
 
 @st.dialog("Edit Project")
 def edit_project_dialog(project):
-    # project is a tuple: (id, name, description, created_at, updated_at)
-    project_id = project['id']
-    project_name = project['name']
-    project_description = project['description']
+    # expecting project is a dict: {'id','name','description','created_at','updated_at', ...}
+    project_id = project["id"]
+    project_name = project["name"]
+    project_description = project["description"]
 
     new_name = st.text_input("Name", value=project_name)
     new_description = st.text_area("Description", value=project_description)

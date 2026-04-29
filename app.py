@@ -83,7 +83,7 @@ if mode == "Project Management":
                     st.subheader("Project Details")
                 with right:
                     if st.button("Edit🛠️"):
-                        edit_project_dialog(projects_for_selectbox)
+                        edit_project_dialog(project)
                 st.markdown("---")
 
 
