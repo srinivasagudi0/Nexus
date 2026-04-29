@@ -84,6 +84,8 @@ if mode == "Project Management":
                 with right:
                     if st.button("Edit🛠️"):
                         edit_project_dialog(project)
+                        # it is cached so I have to refresh the screen
+                        st.rerun()
                 st.markdown("---")
 
 
