@@ -78,14 +78,17 @@ if mode == "Project Management":
             project_id = project_dict[selected_project]
             project = get_project_by_id(project_id)
             if project:
-                left, right = st.columns(2)
+                left, right, corner = st.columns(1,3,3)
                 with left:
                     st.subheader("Project Details")
                 with right:
                     if st.button("Edit🛠️"):
                         edit_project_dialog(project)
-                        # it is cached so I have to refresh the screen
                         st.rerun()
+                with corner:
+                    if st.button("Delete Project"):
+                        # this should be easy cause just delete it
+                        st.info("This feature is under development, will be up as soon as possible.")
                 st.markdown("---")
 
 
