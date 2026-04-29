@@ -84,9 +84,9 @@ if mode == "Project Management":
                 with right:
                     if st.button("Edit🛠️"):
                         edit_project_dialog(project)
-                        st.rerun()
+                        #st.rerun() i am dumb to do this, this hsoul dbe done after so iwll put in suppport.py
                 with corner:
-                    if st.button("Delete Project"):
+                    if st.button("Delete Project 🗑 ️"):
                         # this should be easy cause just delete it
                         st.info("This feature is under development, will be up as soon as possible.")
                 st.markdown("---")
@@ -107,4 +107,6 @@ if mode == "Project Management":
                         if st.button(f"Edit ✏️", key=f"edit_{task[0]}"):
                             edit_task_dialog(task)
     ## now that db is set and sent some projects into it shoudl be able to retrieve and view them here, next up is to make it
+
+
 

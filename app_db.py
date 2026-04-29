@@ -163,4 +163,12 @@ def update_project(project_id, name=None, description=None):
     conn.commit()
     # i shouldnt have to close the connection here because it is cached and shared across threads, closing it would cause issues when other parts of the app try to use it later, so I will just close the cursor and leave the connection open for reuse.    
 
-    
+## now delete delete a project and all its associated tasks and logs
+def delete_project(project_id): 
+    # this will obivously add projects to the db 😅
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("DELETE FROM projects WHERE id = ?", (project_id,))
+    conn.commit()
+# I will not close thr connection like I did last time.
+

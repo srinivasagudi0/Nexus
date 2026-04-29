@@ -110,3 +110,10 @@ def edit_project_dialog(project):
     if st.button("Save Changes"):
         update_project(project_id, new_name, new_description)
         st.success("Project updated successfully!")
+        #import time
+        #time.sleep(0.5) # experiment doont know if it works in real work and dont know If i can pass decimals
+        # affter time rerun because evetything is cached
+        # run directly after the change sdont wait and also will clean this up later
+        st.rerun()
+
+    
