@@ -78,7 +78,7 @@ if mode == "Project Management":
             project_id = project_dict[selected_project]
             project = get_project_by_id(project_id)
             if project:
-                left, right, corner = st.columns([1, 3, 3])
+                left, right, corner = st.columns([1, 2, 3])
                 with left:
                     st.subheader("Project Details")
                 with right:
