@@ -99,18 +99,22 @@ if mode == "Project Management":
                 st.write(f"**Created At:** {project['created_at']}")
                 st.write(f"**Updated At:** {project['updated_at']}")
                 st.subheader("**Tasks:**")
-                left, right = st.columns([1, 1])
+                left, right = st.columns([1, 3])
                 with left:
-                    st.text_input("**Title**")
+                    #st.markdown("<br>", unsafe_allow_html=True)
+                    st.write("**Add a new task:**")
                 with right:
+                    #st.markdown("<br>", unsafe_allow_html=True)
                     if st.button("Add +"):
                         st.info("This feature is under development, will be up as soon as possible.")
                         add_task_dialog(project['id'])
-                    tasks =get_task_by_id(project['id'])
-                    try:    
-                        st.write(tasks)
-                    except Exception as e:
-                        st.write("No tasks found for this project.")            
+                # make it look good by adding apcing
+                st.markdown("<br>", unsafe_allow_html=True)
+                tasks =get_task_by_id(project['id'])
+                try:    
+                    st.write(tasks)
+                except Exception as e:
+                    st.write("No tasks found for this project.")            
                 st.markdown("---")
 
 
