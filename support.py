@@ -81,20 +81,22 @@ def edit_task_dialog(task):
     # task is a tuple: (id, title, details, status, created_at, updated_at)
     task_id = task[0]
     task_title = task[1]
-    task_details = task[2]
+    task_details = task[2] or ""
     task_status = task[3]
+    statuses = ["pending", "in progress", "completed"]
 
     new_title = st.text_input("Title", value=task_title)
     new_details = st.text_area("Details", value=task_details)
     new_status = st.selectbox(
         "Status",
-        ["pending", "in progress", "completed"],
-        index=["pending", "in progress", "completed"].index(task_status),
+        statuses,
+        index=statuses.index(task_status) if task_status in statuses else 0,
     )
 
     if st.button("Save Changes"):
         update_task(task_id, new_title, new_details, new_status)
         st.success("Task updated successfully!")
+        st.rerun()
 # this shit doesnt work so lets move on and come back later
 
 @st.dialog("Edit Project")

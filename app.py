@@ -79,7 +79,7 @@ if mode == "Project Management":
             project_id = project_dict[selected_project]
             project = get_project_by_id(project_id)
             if project:
-                left, right, corner = st.columns([1, 1, 3])
+                left, right, corner = st.columns([3, 2, 2])
                 with left:
                     st.subheader("Project Details")
                 with right:
@@ -101,10 +101,20 @@ if mode == "Project Management":
                 st.subheader("**Tasks:**")
                 # make it look good by adding apcing
                 st.markdown("<br>", unsafe_allow_html=True)
-                tasks =get_task_by_id(project['id'])
-                try:    
-                    st.write(tasks)
-                except Exception as e:
+                tasks = project["tasks"]
+                if tasks:
+                    for task in tasks:
+                        task_left, task_middle, task_right = st.columns([3, 2, 1])
+                        with task_left:
+                            st.write(f"**{task[1]}**")
+                            if task[2]:
+                                st.write(task[2])
+                        with task_middle:
+                            st.write(task[3])
+                        with task_right:
+                            if st.button("Edit", key=f"edit-task-{task[0]}"):
+                                edit_task_dialog(task)
+                else:
                     st.write("No tasks found for this project.")    
                 st.markdown("---")      
                

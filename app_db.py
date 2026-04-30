@@ -168,6 +168,8 @@ def delete_project(project_id):
     # this will obivously add projects to the db 😅
     conn = get_db_connection()
     cur = conn.cursor()
+    cur.execute("DELETE FROM logs WHERE task_id IN (SELECT id FROM tasks WHERE project_id = ?)", (project_id,))
+    cur.execute("DELETE FROM tasks WHERE project_id = ?", (project_id,))
     cur.execute("DELETE FROM projects WHERE id = ?", (project_id,))
     conn.commit()
     import streamlit as st
