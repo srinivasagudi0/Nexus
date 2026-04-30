@@ -51,26 +51,27 @@ if mode == "Project Management":
         st.subheader("Create a New Project")
         project_name = st.text_input("Project Name")
         project_description = st.text_area("Project Description")
-        tasks_input = st.text_area("Tasks (one per line, format(please follow for now): title|details|status)")
+        #tasks_input = st.text_area("Tasks (one per line, format(please follow for now): title|details|status)")
         if st.button("Create Project"):
-            if project_name and tasks_input and project_description:
-                tasks = []
-                for line in tasks_input.splitlines():
-                    parts = line.split("|")
-                    if len(parts) >= 2:
-                        task = {
-                            "title": parts[0].strip(),
-                            "details": parts[1].strip(),
-                            "status": parts[2].strip() if len(parts) > 2 else "pending"
-                        }
-                        tasks.append(task)
-                add_project(project_name, project_description, tasks)
+            if project_name and project_description:
+                #tasks = []
+                #for line in tasks_input.splitlines():
+                #    parts = line.split("|")
+                 #   if len(parts) >= 2:
+                  #      task = {
+                   #         "title": parts[0].strip(),
+                    #        "details": parts[1].strip(),
+                     #       "status": parts[2].strip() if len(parts) > 2 else "pending"
+                      #  }
+                       # tasks.append(task)
+                add_project(project_name, project_description)
                 st.success("Project created successfully!")
             else:
                 st.error("Please provide a project name and at least one task.")
     
     if mode == 'View Existing Projects':
         # now lets go retrive the projects ft67
+        # adding tasks will take place here instead of Project creation, so we can have a better flow, and also be able to edit projects and add tasks to them later on, which is good for the ux.
         projects_for_selectbox = get_projects()
         project_dict = {f"{proj[1]}" : proj[0] for proj in projects_for_selectbox}
         selected_project = st.selectbox("Select a Project", options=project_dict.keys())
