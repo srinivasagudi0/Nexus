@@ -125,6 +125,6 @@ def delete_project_support(project):
         delete_project(project_id)
     if st.button("Deny"): # forgot what the word is
         st.rerun()
-    if st.write('Show Raw Project Data'):
+    if st.button('Show Raw Project Data'):
         st.write(project)
         
