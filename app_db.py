@@ -170,5 +170,7 @@ def delete_project(project_id):
     cur = conn.cursor()
     cur.execute("DELETE FROM projects WHERE id = ?", (project_id,))
     conn.commit()
+    import streamlit as st
+    st.rerun()
 # I will not close thr connection like I did last time.
 
