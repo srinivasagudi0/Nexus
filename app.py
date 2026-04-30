@@ -88,7 +88,7 @@ if mode == "Project Management":
                 with corner:
                     if st.button("Delete Project 🗑 ️"):
                         # this should be easy cause just delete it
-                        delete_project_support
+                        delete_project_support(project)
                         st.info("This feature is under development, will be up as soon as possible.")
                 st.markdown("---")
 

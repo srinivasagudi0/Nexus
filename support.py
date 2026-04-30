@@ -117,12 +117,11 @@ def edit_project_dialog(project):
         st.rerun()
 
 @st.dialog("Delete Proeject")
-def delete_project_support():
+def delete_project_support(project):
     from app_db import delete_project
 
     st.warning("Delete Project")
     if st.button("Confirm"):
-        delete_project()
+        delete_project(project)
     if st.button("Deny"): # forgot what the word is
         st.rerun()
-        
