@@ -119,7 +119,7 @@ def edit_project_dialog(project):
 @st.dialog("Delete Proeject")
 def delete_project_support(project):
     from app_db import delete_project
-
+    st.write("**project**")  ## for debugging purpose only
     st.warning("Delete Project")
     if st.button("Confirm"):
         delete_project(project)
