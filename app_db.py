@@ -172,5 +172,31 @@ def delete_project(project_id):
     conn.commit()
     import streamlit as st
     st.rerun()
-# I will not close thr connection like I did last time.
+# I will not close the connection like I did last time.
 
+def add_task(project_id, title, details="", status="pending"):
+    """Add a new task to a project"""
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("INSERT INTO tasks (project_id, title, details, status) VALUES (?, ?, ?, ?)", 
+                (project_id, title, details, status))
+    task_id = cur.lastrowid
+    cur.execute("UPDATE projects SET updated_at = datetime('now') WHERE id = ?", (project_id,))
+    conn.commit()
+    return task_id
+
+def get_task_by_id(task_id):
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT id, title, details, status, created_at, updated_at FROM tasks WHERE id = ?", (task_id,))
+    task = cur.fetchone()
+    if task:
+        return {
+            "id": task[0],
+            "title": task[1],
+            "details": task[2],
+            "status": task[3],
+            "created_at": task[4],
+            "updated_at": task[5]
+        }
+    return None

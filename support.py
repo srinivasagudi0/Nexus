@@ -129,3 +129,18 @@ def delete_project_support(project):
         with st.spinner('Fetching Info...'):
             st.write(project)
         
+@st.dialog("Add Task") 
+# I really can't think of a better way than a dialog box
+def add_task_dialog(project_id):
+    title = st.text_input("Title")
+    details = st.text_area("Details")
+    status = st.selectbox("Status", ["pending", "in progress", "completed"])
+    from app_db import add_task
+    if st.button("Add Task"):
+        add_task(project_id, title, details, status)
+        st.success("Task added successfully!")
+        st.rerun()
+
+def get_task_by_id(task_id):
+    from app_db import get_task_by_id
+    return get_task_by_id(task_id)

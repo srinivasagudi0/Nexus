@@ -105,6 +105,14 @@ if mode == "Project Management":
                 with right:
                     if st.button("Add +"):
                         st.info("This feature is under development, will be up as soon as possible.")
+                        add_task_dialog(project['id'])
+                    tasks =get_task_by_id(project['id'])
+                    for task in tasks:
+                        with st.expander(f"{task['title']} - {task['status']}"):
+                            st.write(f"**Details:** {task['details']}")
+                            st.write(f"**Created At:** {task['created_at']}")
+                            st.write(f"**Updated At:** {task['updated_at']}")
+                            
                 st.markdown("---")
 
 
