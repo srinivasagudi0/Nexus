@@ -116,4 +116,13 @@ def edit_project_dialog(project):
         # run directly after the change sdont wait and also will clean this up later
         st.rerun()
 
-    
+@st.dialog("Delete Proeject")
+def delete_project_support():
+    from app_db import delete_project
+
+    st.warning("Delete Project")
+    if st.button("Confirm"):
+        delete_project()
+    if st.button("Deny"): # forgot what the word is
+        st.rerun()
+        
