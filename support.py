@@ -119,9 +119,12 @@ def edit_project_dialog(project):
 @st.dialog("Delete Proeject")
 def delete_project_support(project):
     from app_db import delete_project
-    st.write(project)  ## for debugging purpose only, forgot to unapotropbhe it
     st.warning("Delete Project")
     if st.button("Confirm"):
-        delete_project(project)
+        project_id = project['id']
+        delete_project(project_id)
     if st.button("Deny"): # forgot what the word is
         st.rerun()
+    if st.write('Show Raw Project Data'):
+        st.write(project)
+        
