@@ -98,17 +98,15 @@ if mode == "Project Management":
                 st.write(f"**Description:** {project['description']}")
                 st.write(f"**Created At:** {project['created_at']}")
                 st.write(f"**Updated At:** {project['updated_at']}")
-                st.write("**Tasks:**")
-                # There is some problem right here try to fix it later, but now work on edit.
-                for task in project['tasks']:
-                    col1, col2 = st.columns([3, 1])
-                    # idk this thuing is nothing showing up, omg i worked on this for a n hour now and it is still not working, will come back to this at the very very very end.
-                    with col1:
-                        st.write(f"- {task[1]} (Status: {task[3]})")
-                    with col2:
-                        if st.button(f"Edit ✏️", key=f"edit_{task[0]}"):
-                            edit_task_dialog(task)
-    ## now that db is set and sent some projects into it shoudl be able to retrieve and view them here, next up is to make it
+                st.subheader("**Tasks:**")
+                left, right = st.columns([1, 1])
+                with left:
+                    st.text_input("**Title**")
+                with right:
+                    if st.button("Add +"):
+                        st.info("This feature is under development, will be up as soon as possible.")
+                st.markdown("---")
 
 
 
+                ## now that db is set and sent some projects into it shoudl be able to retrieve and view them here, next up is to make it
