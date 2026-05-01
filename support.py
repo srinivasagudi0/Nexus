@@ -1,148 +1,208 @@
-from openai import OpenAI
+import io
+import json
 import os
-import streamlit as st
-from app_db import update_task, get_project_by_id, update_project
+import zipfile
+from datetime import date, datetime, timedelta
+
+from openai import APIError, APITimeoutError, OpenAI, OpenAIError, RateLimitError
 
 
+OK_TYPES = [".py", ".txt", ".zip"]
 
-# extract the code from the file
+
+def validate_upload(file):
+    # checking the file type here
+    if file is None:
+        return False, "Please upload a file first."
+
+    name = getattr(file, "name", "")
+    name = str(name).lower()
+
+    good = False
+    for x in OK_TYPES:
+        if name.endswith(x):
+            good = True
+
+    if good:
+        return True, ""
+    return False, "Only .py, .txt, and .zip files can be uploaded."
+
+
 def extract_code(file):
-    # Streamlit uploader returns an UploadedFile-like object with a .read() method.
     if hasattr(file, "read"):
-        content = file.read()
-        if isinstance(content, bytes):
-            return content.decode("utf-8", errors="ignore")
-        return str(content)
+        data = file.read()
+        if isinstance(data, bytes):
+            return data.decode("utf-8", errors="ignore")
+        return str(data)
 
-    # Fallback: allow passing a regular file path.
-    with open(file, "r", encoding="utf-8") as f:
-        return f.read()
+    f = open(file, "r", encoding="utf-8")
+    data = f.read()
+    f.close()
+    return data
+
+
+def extract_zip(file):
+    text = ""
+
+    if hasattr(file, "read"):
+        temp = io.BytesIO(file.read())
+        z = zipfile.ZipFile(temp)
+    else:
+        z = zipfile.ZipFile(file, "r")
+
+    with z:
+        names = z.namelist()
+        for name in names:
+            low = name.lower()
+            if low.endswith(".py") or low.endswith(".txt"):
+                f = z.open(name)
+                data = f.read()
+                f.close()
+                data = data.decode("utf-8", errors="ignore")
+                text = text + "\n\n# file: " + name + "\n"
+                text = text + data
+
+    return text.strip()
+
+
+def get_code_from_upload(file):
+    ok, msg = validate_upload(file)
+    if not ok:
+        return "", msg
+
+    name = str(getattr(file, "name", "")).lower()
+    try:
+        if name.endswith(".zip"):
+            code = extract_zip(file)
+        else:
+            code = extract_code(file)
+    except zipfile.BadZipFile:
+        return "", "That ZIP file could not be opened."
+    except Exception as e:
+        return "", "I could not read that file: " + str(e)
+
+    if code.strip() == "":
+        return "", "I did not find any .py or .txt code to analyze."
+    return code, ""
+
+
+def has_api_key():
+    if os.environ.get("OPENAI_API_KEY"):
+        return True
+    return False
+
 
 def analyze_file_code(code):
-    client = OpenAI()
-    response = client.chat.completions.create(
-        model="gpt-4o",
-        messages=[
-            {
-                "role": "system",
-                "content": (
-                    "You are a senior code reviewer. Return analysis in exactly this order:\n"
-                    "Summary:\n"
-                    "- ...\n\n"
-                    "Risks:\n"
-                    "- ...\n\n"
-                    "Suggestions:\n"
-                    "- ...\n\n"
-                    "Use short bullet points. If nothing is notable in a section, write '- None'. "
-                    "Do not add extra headings."
-                ),
-            },
-            {
-                "role": "user",
-                "content": f"Analyze the following code:\n\n{code}",
-            },
-        ],
-    )
-    return response.choices[0].message.content
+    try:
+        bot = OpenAI(timeout=30)
+        answer = bot.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "Look at the code and answer with exactly these sections:\n"
+                        "Summary:\n- ...\n\n"
+                        "Risks:\n- ...\n\n"
+                        "Suggestions:\n- ..."
+                    ),
+                },
+                {"role": "user", "content": "Here is the code:\n\n" + code},
+            ],
+        )
+        return answer.choices[0].message.content, None
+    except RateLimitError:
+        return None, "OpenAI rate limit hit. Please wait a bit and try again."
+    except APITimeoutError:
+        return None, "OpenAI took too long to answer. Please try again."
+    except APIError as e:
+        return None, "OpenAI had an API problem: " + str(e)
+    except OpenAIError as e:
+        return None, "OpenAI could not finish the request: " + str(e)
+    except Exception as e:
+        return None, "Something went wrong during analysis: " + str(e)
 
 
-# extract zip file and return the code in the zip file as a string
-def extract_zip(file):
-    import zipfile
-    import io
+def make_tasks_from_goal(goal):
+    try:
+        bot = OpenAI(timeout=30)
+        answer = bot.chat.completions.create(
+            model="gpt-4o",
+            response_format={"type": "json_object"},
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "Make tasks from this goal. Send JSON only. "
+                        "Use this shape: "
+                        '{"tasks":[{"title":"name","details":"what to do","due_date":"YYYY-MM-DD or empty"}]}. '
+                        "Make about 4 to 7 tasks."
+                    ),
+                },
+                {"role": "user", "content": goal},
+            ],
+        )
 
-    if hasattr(file, "read"):
-        with zipfile.ZipFile(io.BytesIO(file.read())) as z:
-            code = ""
-            for filename in z.namelist():
-                if filename.endswith((".py", ".txt")):
-                    with z.open(filename) as f:
-                        content = f.read()
-                        if isinstance(content, bytes):
-                            code += content.decode("utf-8", errors="ignore") + "\n"
-                        else:
-                            code += str(content) + "\n"
-            return code
-    else:
-        with zipfile.ZipFile(file, "r") as z:
-            code = ""
-            for filename in z.namelist():
-                if filename.endswith((".py", ".txt")):
-                    with z.open(filename) as f:
-                        content = f.read()
-                        if isinstance(content, bytes):
-                            code += content.decode("utf-8", errors="ignore") + "\n"
-                        else:
-                            code += str(content) + "\n"
-            return code
+        raw = answer.choices[0].message.content
+        data = json.loads(raw)
+        tasks = data.get("tasks", [])
+        new_tasks = []
 
-@st.dialog("Edit Task")
-def edit_task_dialog(task):
-    # task is a tuple: (id, title, details, status, created_at, updated_at)
-    task_id = task[0]
-    task_title = task[1]
-    task_details = task[2] or ""
-    task_status = task[3]
-    statuses = ["pending", "in progress", "completed"]
+        for x in tasks:
+            title = str(x.get("title", "")).strip()
+            details = str(x.get("details", "")).strip()
+            due = str(x.get("due_date", "")).strip()
+            if title != "":
+                new_tasks.append({"title": title, "details": details, "due_date": due})
 
-    new_title = st.text_input("Title", value=task_title)
-    new_details = st.text_area("Details", value=task_details)
-    new_status = st.selectbox(
-        "Status",
-        statuses,
-        index=statuses.index(task_status) if task_status in statuses else 0,
-    )
+        return new_tasks, None
+    except json.JSONDecodeError:
+        return None, "The AI answered, but it did not send valid JSON."
+    except RateLimitError:
+        return None, "OpenAI rate limit hit. Please wait a bit and try again."
+    except APITimeoutError:
+        return None, "OpenAI took too long to answer. Please try again."
+    except APIError as e:
+        return None, "OpenAI had an API problem: " + str(e)
+    except OpenAIError as e:
+        return None, "OpenAI could not finish the request: " + str(e)
+    except Exception as e:
+        return None, "Something went wrong making tasks: " + str(e)
 
-    if st.button("Save Changes"):
-        update_task(task_id, new_title, new_details, new_status)
-        st.success("Task updated successfully!")
-        st.rerun()
-# this shit doesnt work so lets move on and come back later
 
-@st.dialog("Edit Project")
-def edit_project_dialog(project):
-    # expecting project is a dict: {'id','name','description','created_at','updated_at', ...}
-    project_id = project["id"]
-    project_name = project["name"]
-    project_description = project["description"]
+def read_date(text):
+    if not text:
+        return None
+    try:
+        return datetime.strptime(text, "%Y-%m-%d").date()
+    except ValueError:
+        return None
 
-    new_name = st.text_input("Name", value=project_name)
-    new_description = st.text_area("Description", value=project_description)
 
-    if st.button("Save Changes"):
-        update_project(project_id, new_name, new_description)
-        st.success("Project updated successfully!")
-        #import time
-        #time.sleep(0.5) # experiment doont know if it works in real work and dont know If i can pass decimals
-        # affter time rerun because evetything is cached
-        # run directly after the change sdont wait and also will clean this up later
-        st.rerun()
+def find_risks(tasks, today=None):
+    if today is None:
+        today = date.today()
 
-@st.dialog("Delete Proeject")
-def delete_project_support(project):
-    from app_db import delete_project
-    st.warning("Delete Project")
-    if st.button("Confirm"):
-        project_id = project['id']
-        delete_project(project_id)
-    if st.button("Deny"): # forgot what the word is
-        st.rerun()
-    if st.button('Show Raw Project Data'):
-        with st.spinner('Fetching Info...'):
-            st.write(project)
-        
-@st.dialog("Add Task") 
-# I really can't think of a better way than a dialog box
-def add_task_dialog(project_id):
-    title = st.text_input("Title")
-    details = st.text_area("Details")
-    status = st.selectbox("Status", ["pending", "in progress", "completed"])
-    from app_db import add_task
-    if st.button("Add Task"):
-        add_task(project_id, title, details, status)
-        st.success("Task added successfully!")
-        st.rerun()
+    risks = []
+    close_day = today + timedelta(days=3)
 
-def get_task_by_id(task_id):
-    from app_db import get_task_by_id
-    return get_task_by_id(task_id)
+    for task in tasks:
+        status = task.get("status", "pending")
+        due = read_date(task.get("due_date"))
+
+        if due is not None and status != "completed":
+            name = task.get("title", "Untitled task")
+            if due < today:
+                risks.append({
+                    "level": "High",
+                    "task": name,
+                    "message": name + " is past due and is still " + status + ".",
+                })
+            elif due <= close_day:
+                risks.append({
+                    "level": "Medium",
+                    "task": name,
+                    "message": name + " is due soon and is still " + status + ".",
+                })
+
+    return risks

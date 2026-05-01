@@ -1,156 +1,287 @@
-import streamlit as st
-from support import *
 import os
-from app_db import create_tables, add_project, get_projects, get_project_by_id
 
-# fix the edit project and edit task tonigh please i beg you, please please
+import streamlit as st
 
-# check if there is API key in environment variable if not ask user to go set it up
-if "OPENAI_API_KEY" not in os.environ:
-    st.warning("Please set up your OpenAI API key in the environment variable OPENAI_API_KEY to use this app.")
+from app_db import (
+    add_log,
+    add_project,
+    add_task,
+    create_tables,
+    delete_project,
+    get_logs_for_task,
+    get_project_by_id,
+    get_projects,
+    get_tasks_by_status,
+    update_project,
+    update_task,
+)
+from support import analyze_file_code, find_risks, get_code_from_upload, make_tasks_from_goal
+
+#used AI to cleaan up the scrap i wrote and deleted unnecessary essary comments because they are very useful
+
+statuses = ["pending", "in progress", "completed"]
+
+st.set_page_config(page_title="Nexus AI", layout="wide")
+
+# need the key or the AI stuff won't work
+if not os.environ.get("OPENAI_API_KEY"):
+    st.title("Nexus AI")
+    st.error("OPENAI_API_KEY is missing. Set it first, then run the app again.")
+    st.code("export OPENAI_API_KEY='your-api-key-here'\nstreamlit run app.py")
     st.stop()
 
-# now that openai exists, lets set up db if not exists
 create_tables()
 
 st.title("Nexus AI")
-st.caption("Nexus AI only .py, .txt, and .zip")
+st.caption("Upload code, make tasks, and check if anything is getting late.")
+
+page = st.sidebar.selectbox("Select Mode", ["Code Analysis", "Project Management"])
 
 
-mode = st.sidebar.selectbox("Select Mode", ["Choose a mode","Code Analysis", "Project Management"])
+if page == "Code Analysis":
+    st.subheader("Code Analysis")
+    st.write("Upload a .py, .txt, or .zip file.")
 
-if mode == "Code Analysis":    
-    #upload box
-    st.write("If you want to analyze projects that are with multiple files, please zip the project and upload the zip file.")
-    code = st.file_uploader("Upload Code", type=["py", "txt", "zip"])
-    if code is not None:
+    file = st.file_uploader("Upload Code", type=["py", "txt", "zip"])
+
+    if file is not None:
         if st.button("Analyze"):
-            filename = (getattr(code, "name", "") or "").lower()
-            if filename.endswith(".zip"):
-                extracted_code = extract_zip(code)
+            code, msg = get_code_from_upload(file)
+            if msg != "":
+                st.error(msg)
             else:
-                extracted_code = extract_code(code)
+                with st.spinner("Asking OpenAI..."):
+                    answer, err = analyze_file_code(code)
 
-            explanation = analyze_file_code(extracted_code)
-            st.download_button(
-                label="Download Explanation",
-                data=explanation,
-                file_name="code_analysis.txt",
-                mime="text/plain"
-            )
-            st.subheader("Code Analysis:")
-            st.code(explanation)
-
-if mode == "Project Management":
-    # we can make so it asks if the project is new or already created so this wont happen and is kinda cool ig
-    st.write("This feature is coming soon. Stay tuned! Placeholder for now even thouhg there is stuff.")
-    mode = st.selectbox("Select Project Mode", ["Choose a mode", "Create a New Project", "View Existing Projects"])
-    
-    
-    if mode == 'Create a New Project':
-        st.subheader("Create a New Project")
-        project_name = st.text_input("Project Name*")
-        project_description = st.text_area("Project Description*")
-        # lets take in the project files and i have no idea how to save it but should be zip file as I have zip file extraction ready and can just save it in the db as blob or something, but for now lets just take in the tasks as text input and then later on we can add the file upload and make it look nice, but for now this is good enough to get the flow right and then we can improve it later on, also this way we can have a better flow for adding tasks to existing projects which is good for the ux, so for now just do text input for tasks and then later on we can add the file upload and make it look nice, but for now lets just take it in and do nothin
-        files = st.file_uploader("Upload Project Files (optional, .zip format recommended)", type=["zip"])
-        # add a uploadfile button
-        if st.button("Upload Files"):
-            # call support.extract_zip
-            with st.spinner("Uploading and extracting files..."):
-                if files is not None:
-                    file_name = getattr(files, "name", "").lower()
-                    if file := extract_code(files):
-                        pass  # Add any specific handling if needed
-                    elif file_name.endswith(".zip"):
-                        extracted_code = extract_zip(files)
-                        st.success("Files uploaded and extracted successfully!")
-                        # just for debugging
-                        st.code(extracted_code)
-                    else:
-                        st.error("Please upload a .zip file for project files.")
-            # do nothing
-
-        #tasks_input = st.text_area("Tasks (one per line, format(please follow for now): title|details|status)")
-        if st.button("Create Project"):
-            if project_name and project_description:
-                #tasks = []
-                #for line in tasks_input.splitlines():
-                #    parts = line.split("|")
-                 #   if len(parts) >= 2:
-                  #      task = {
-                   #         "title": parts[0].strip(),
-                    #        "details": parts[1].strip(),
-                     #       "status": parts[2].strip() if len(parts) > 2 else "pending"
-                      #  }
-                       # tasks.append(task)
-                add_project(project_name, project_description)
-                st.success("Project created successfully!")
-            else:
-                st.error("Please provide a project name and at least one task.")
-    
-    if mode == 'View Existing Projects':
-        # now lets go retrive the projects ft67
-        # adding tasks will take place here instead of Project creation, so we can have a better flow, and also be able to edit projects and add tasks to them later on, which is good for the ux.
-        projects_for_selectbox = get_projects()
-        project_dict = {f"{proj[1]}" : proj[0] for proj in projects_for_selectbox}
-        selected_project = st.selectbox("Select a Project", options=project_dict.keys())
-        if selected_project:
-            project_id = project_dict[selected_project]
-            project = get_project_by_id(project_id)
-            if project:
-                left, right, corner = st.columns([3, 2, 2])
-                with left:
-                    st.subheader("Project Details")
-                with right:
-                    if st.button("Edit🛠️"):
-                        edit_project_dialog(project)
-                        #st.rerun() i am dumb to do this, this hsoul dbe done after so iwll put in suppport.py
-                with corner:
-                    if st.button("Delete Project 🗑 ️"):
-                        # this should be easy cause just delete it
-                        delete_project_support(project)
-                        #st.info("This feature is under development, will be up as soon as possible.")
-                st.markdown("---")
-
-
-                st.write(f"**Name:** {project['name']}")
-                st.write(f"**Description:** {project['description']}")
-                st.write(f"**Created At:** {project['created_at']}")
-                st.write(f"**Updated At:** {project['updated_at']}")
-                st.subheader("**Tasks:**")
-                # make it look good by adding apcing
-                st.markdown("<br>", unsafe_allow_html=True)
-                tasks = project["tasks"]
-                if tasks:
-                    for task in tasks:
-                        task_left, task_middle, task_right = st.columns([3, 2, 1])
-                        with task_left:
-                            st.write(f"**{task[1]}**")
-                            if task[2]:
-                                st.write(task[2])
-                        with task_middle:
-                            st.write(task[3])
-                        with task_right:
-                            if st.button("Edit", key=f"edit-task-{task[0]}"):
-                                edit_task_dialog(task)
+                if err:
+                    st.error(err)
                 else:
-                    st.write("No tasks found for this project.")    
-                st.markdown("---")      
-               
-               
-                left, right = st.columns([1, 3])
-                with left:
-                    #st.markdown("<br>", unsafe_allow_html=True)
-                    st.write("**Add a new task:**")
-                with right:
-                    #st.markdown("<br>", unsafe_allow_html=True)
-                    if st.button("Add +"):
-                        add_task_dialog(project['id'])
-
-                    
-                  
-                
+                    st.subheader("Code Analysis")
+                    st.code(answer)
+                    st.download_button(
+                        "Download Analysis",
+                        answer,
+                        file_name="code_analysis.txt",
+                        mime="text/plain",
+                    )
 
 
+if page == "Project Management":
+    st.subheader("Project Management")
 
-                ## now that db is set and sent some projects into it shoudl be able to retrieve and view them here, next up is to make it
+    tab1, tab2 = st.tabs(["Create Project", "View Projects"])
+
+    with tab1:
+        name = st.text_input("Project Name")
+        desc = st.text_area("Project Description")
+
+        if st.button("Create Project"):
+            if name.strip() == "":
+                st.error("Please add a project name.")
+            else:
+                new_id = add_project(name.strip(), desc.strip())
+                st.success("Project created with id " + str(new_id) + ".")
+
+    with tab2:
+        projects = get_projects()
+
+        if len(projects) == 0:
+            st.info("No projects yet.")
+        else:
+            # making the select box options
+            choices = {}
+            for x in projects:
+                label = x["name"] + " #" + str(x["id"])
+                choices[label] = x["id"]
+
+            picked = st.selectbox("Select a Project", list(choices.keys()))
+            project_id = choices[picked]
+            project = get_project_by_id(project_id)
+
+            st.markdown("### " + project["name"])
+            if project["description"]:
+                st.write(project["description"])
+            else:
+                st.write("No description yet.")
+            st.caption("Created: " + project["created_at"] + " | Updated: " + project["updated_at"])
+
+            with st.expander("Edit project"):
+                name2 = st.text_input("Name", value=project["name"])
+                desc2 = st.text_area("Description", value=project["description"] or "")
+
+                c1, c2 = st.columns(2)
+                with c1:
+                    if st.button("Save project"):
+                        update_project(project_id, name2, desc2)
+                        st.success("Saved project.")
+                        st.rerun()
+                with c2:
+                    if st.button("Delete project"):
+                        delete_project(project_id)
+                        st.success("Deleted project.")
+                        st.rerun()
+
+            st.markdown("### Add Task")
+            with st.form("task-form"):
+                title = st.text_input("Task title")
+                details = st.text_area("Task details")
+                status = st.selectbox("Task status", statuses)
+                due = st.text_input("Due date (YYYY-MM-DD)")
+                go = st.form_submit_button("Add Task")
+
+                if go:
+                    if title.strip() == "":
+                        st.error("Please add a task title.")
+                    else:
+                        task_id = add_task(project_id, title.strip(), details.strip(), status, due.strip() or None)
+                        add_log(task_id, "Task was added by hand.")
+                        st.success("Added task.")
+                        st.rerun()
+
+            st.markdown("### AI Task Decomposition")
+            goal = st.text_area("Goal text", value=project["description"] or "", key="goalbox")
+            if st.button("Generate subtasks with AI"):
+                if goal.strip() == "":
+                    st.error("Please type a goal first.")
+                else:
+                    with st.spinner("Making tasks..."):
+                        tasks, err = make_tasks_from_goal(goal)
+
+                    if err:
+                        st.error(err)
+                    elif not tasks:
+                        st.warning("The AI did not make any tasks.")
+                    else:
+                        count = 0
+                        for task in tasks:
+                            task_id = add_task(
+                                project_id,
+                                task["title"],
+                                task.get("details", ""),
+                                "pending",
+                                task.get("due_date") or None,
+                            )
+                            add_log(task_id, "AI created this task from the project goal.")
+                            count = count + 1
+                        st.success("Added " + str(count) + " AI tasks.")
+                        st.rerun()
+
+            project = get_project_by_id(project_id)
+
+            st.markdown("### Risk Check")
+            risks = find_risks(project["tasks"])
+            if len(risks) == 0:
+                st.success("No deadline risks found right now.")
+            else:
+                for x in risks:
+                    if x["level"] == "High":
+                        st.error(x["message"])
+                    else:
+                        st.warning(x["message"])
+
+            st.markdown("### Kanban")
+            piles = get_tasks_by_status(project_id)
+
+            col1, col2, col3 = st.columns(3)
+
+            with col1:
+                st.markdown("#### To Do")
+                for task in piles["pending"]:
+                    st.markdown("**" + task["title"] + "**")
+                    if task["details"]:
+                        st.write(task["details"])
+                    if task["due_date"]:
+                        st.caption("Due: " + task["due_date"])
+                    else:
+                        st.caption("Due: No due date")
+
+                    if st.button("Doing", key="doing-" + str(task["id"])):
+                        update_task(task["id"], status="in progress")
+                        add_log(task["id"], "Moved to Doing.")
+                        st.rerun()
+                    if st.button("Done", key="done-" + str(task["id"])):
+                        update_task(task["id"], status="completed")
+                        add_log(task["id"], "Moved to Done.")
+                        st.rerun()
+
+                    with st.expander("Edit " + task["title"]):
+                        t = st.text_input("Title", value=task["title"], key="title-" + str(task["id"]))
+                        d = st.text_area("Details", value=task["details"] or "", key="details-" + str(task["id"]))
+                        dd = st.text_input("Due date (YYYY-MM-DD)", value=task["due_date"] or "", key="due-" + str(task["id"]))
+                        s = st.selectbox("Status", statuses, index=0, key="status-" + str(task["id"]))
+                        if st.button("Save task", key="save-" + str(task["id"])):
+                            update_task(task["id"], t, d, s, dd)
+                            add_log(task["id"], "Task was updated.")
+                            st.rerun()
+                        logs = get_logs_for_task(task["id"])
+                        for log in logs:
+                            st.caption(log["created_at"] + " - " + log["message"])
+                    st.markdown("---")
+
+            with col2:
+                st.markdown("#### Doing")
+                for task in piles["in progress"]:
+                    st.markdown("**" + task["title"] + "**")
+                    if task["details"]:
+                        st.write(task["details"])
+                    if task["due_date"]:
+                        st.caption("Due: " + task["due_date"])
+                    else:
+                        st.caption("Due: No due date")
+
+                    if st.button("To Do", key="todo-" + str(task["id"])):
+                        update_task(task["id"], status="pending")
+                        add_log(task["id"], "Moved to To Do.")
+                        st.rerun()
+                    if st.button("Done", key="done2-" + str(task["id"])):
+                        update_task(task["id"], status="completed")
+                        add_log(task["id"], "Moved to Done.")
+                        st.rerun()
+
+                    with st.expander("Edit " + task["title"]):
+                        t = st.text_input("Title", value=task["title"], key="title2-" + str(task["id"]))
+                        d = st.text_area("Details", value=task["details"] or "", key="details2-" + str(task["id"]))
+                        dd = st.text_input("Due date (YYYY-MM-DD)", value=task["due_date"] or "", key="due2-" + str(task["id"]))
+                        s = st.selectbox("Status", statuses, index=1, key="status2-" + str(task["id"]))
+                        if st.button("Save task", key="save2-" + str(task["id"])):
+                            update_task(task["id"], t, d, s, dd)
+                            add_log(task["id"], "Task was updated.")
+                            st.rerun()
+                        logs = get_logs_for_task(task["id"])
+                        for log in logs:
+                            st.caption(log["created_at"] + " - " + log["message"])
+                    st.markdown("---")
+
+            with col3:
+                st.markdown("#### Done")
+                for task in piles["completed"]:
+                    st.markdown("**" + task["title"] + "**")
+                    if task["details"]:
+                        st.write(task["details"])
+                    if task["due_date"]:
+                        st.caption("Due: " + task["due_date"])
+                    else:
+                        st.caption("Due: No due date")
+
+                    if st.button("To Do", key="todo3-" + str(task["id"])):
+                        update_task(task["id"], status="pending")
+                        add_log(task["id"], "Moved to To Do.")
+                        st.rerun()
+                    if st.button("Doing", key="doing3-" + str(task["id"])):
+                        update_task(task["id"], status="in progress")
+                        add_log(task["id"], "Moved to Doing.")
+                        st.rerun()
+
+                    with st.expander("Edit " + task["title"]):
+                        t = st.text_input("Title", value=task["title"], key="title3-" + str(task["id"]))
+                        d = st.text_area("Details", value=task["details"] or "", key="details3-" + str(task["id"]))
+                        dd = st.text_input("Due date (YYYY-MM-DD)", value=task["due_date"] or "", key="due3-" + str(task["id"]))
+                        s = st.selectbox("Status", statuses, index=2, key="status3-" + str(task["id"]))
+                        if st.button("Save task", key="save3-" + str(task["id"])):
+                            update_task(task["id"], t, d, s, dd)
+                            add_log(task["id"], "Task was updated.")
+                            st.rerun()
+                        logs = get_logs_for_task(task["id"])
+                        for log in logs:
+                            st.caption(log["created_at"] + " - " + log["message"])
+                    st.markdown("---")

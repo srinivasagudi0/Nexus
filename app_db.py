@@ -1,204 +1,245 @@
-# We will be storing the data in sqlite and In the file named 'app.db'
+import sqlite3
 
-#Define the SQLite schema with three linked tables: projects, tasks (belongs to projects), and logs(belongs to tasks).
-import sqlite3  
-import streamlit as st
 
-@st.cache_resource
-def get_db_connection():
-    """Create a database connection that can be used across all threads"""
-    conn = sqlite3.connect('app.db', check_same_thread=False)
-    conn.execute("PRAGMA foreign_keys = ON;")
-    return conn
+DB_NAME = "app.db"
+STATUSES = ["pending", "in progress", "completed"]
 
-def create_tables():
-    conn = get_db_connection()
-    cur = conn.cursor()
 
-    # added it in get_db_connection
+def get_db_connection(db_path=DB_NAME):
+    db = sqlite3.connect(db_path, check_same_thread=False)
+    db.execute("PRAGMA foreign_keys = ON")
+    db.row_factory = sqlite3.Row
+    return db
 
+
+def create_tables(db_path=DB_NAME):
+    db = get_db_connection(db_path)
+    cur = db.cursor()
+
+    # making the three tables the app needs
     cur.execute("""
-        CREATE TABLE IF NOT EXISTS projects (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            description TEXT,
-            created_at TEXT DEFAULT (datetime('now')),
-            updated_at TEXT DEFAULT (datetime('now'))
-        );
+    CREATE TABLE IF NOT EXISTS projects (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        description TEXT,
+        created_at TEXT DEFAULT (datetime('now')),
+        updated_at TEXT DEFAULT (datetime('now'))
+    )
     """)
 
     cur.execute("""
-        CREATE TABLE IF NOT EXISTS tasks (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            project_id INTEGER NOT NULL,
-            title TEXT NOT NULL,
-            details TEXT,
-            status TEXT NOT NULL DEFAULT 'pending',
-            created_at TEXT DEFAULT (datetime('now')),
-            updated_at TEXT DEFAULT (datetime('now')),
-            FOREIGN KEY (project_id) REFERENCES projects(id)
-        );
+    CREATE TABLE IF NOT EXISTS tasks (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        project_id INTEGER NOT NULL,
+        title TEXT NOT NULL,
+        details TEXT,
+        status TEXT NOT NULL DEFAULT 'pending',
+        due_date TEXT,
+        created_at TEXT DEFAULT (datetime('now')),
+        updated_at TEXT DEFAULT (datetime('now')),
+        FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+    )
     """)
 
     cur.execute("""
-        CREATE TABLE IF NOT EXISTS logs (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            task_id INTEGER NOT NULL,
-            message TEXT NOT NULL,
-            created_at TEXT DEFAULT (datetime('now')),
-            FOREIGN KEY (task_id) REFERENCES tasks(id)
-        );
+    CREATE TABLE IF NOT EXISTS logs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        task_id INTEGER NOT NULL,
+        message TEXT NOT NULL,
+        created_at TEXT DEFAULT (datetime('now')),
+        FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE
+    )
     """)
 
-    conn.commit()
+    migrate_tables(db)
+    db.commit()
+    db.close()
 
-# to add a project into a db, we need name, description, tasks, and logs(is optional) 
-# i guess the is goood enough for now, I will test it out later, I will go call into app.py now anyways
-def add_project(name, description):
-    conn = get_db_connection()
-    cur = conn.cursor()
+
+def migrate_tables(db):
+    cur = db.cursor()
+    cur.execute("PRAGMA table_info(tasks)")
+    rows = cur.fetchall()
+    found_it = False
+    for x in rows:
+        if x["name"] == "due_date":
+            found_it = True
+    if not found_it:
+        cur.execute("ALTER TABLE tasks ADD COLUMN due_date TEXT")
+
+
+def add_project(name, description="", db_path=DB_NAME):
+    db = get_db_connection(db_path)
+    cur = db.cursor()
     cur.execute("INSERT INTO projects (name, description) VALUES (?, ?)", (name, description))
-    project_id = cur.lastrowid
+    num = cur.lastrowid
+    db.commit()
+    db.close()
+    return num
 
-    #for task in tasks:
-     #   title = task['title']
-      #  details = task.get('details', '')
-       # status = task.get('status', 'pending')
 
-        #cur.execute("INSERT INTO tasks (project_id, title, details, status) VALUES (?, ?, ?, ?)", 
-         #           (project_id, title, details, status))
-        #task_id = cur.lastrowid
+def get_projects(db_path=DB_NAME):
+    db = get_db_connection(db_path)
+    cur = db.cursor()
+    cur.execute("SELECT id, name, description, created_at, updated_at FROM projects ORDER BY updated_at DESC")
+    rows = cur.fetchall()
+    stuff = []
+    for row in rows:
+        stuff.append(dict(row))
+    db.close()
+    return stuff
 
-        #logs = task.get('logs', [])
-        #for log in logs:
-         #   message = log['message']
-          #  cur.execute("INSERT INTO logs (task_id, message) VALUES (?, ?)", (task_id, message))
 
-    conn.commit()
+def get_project_by_id(project_id, db_path=DB_NAME):
+    db = get_db_connection(db_path)
+    cur = db.cursor()
 
-#retrieval
-def get_projects():
-    """Retrieve all projects from the database"""
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute("SELECT id, name, description, created_at, updated_at FROM projects")
-    projects = cur.fetchall()
-    return projects
-
-def get_project_by_id(project_id):
-    """Retrieve a specific project by ID with all its tasks"""
-    conn = get_db_connection()
-    cur = conn.cursor()
-    
-    # Get project details
     cur.execute("SELECT id, name, description, created_at, updated_at FROM projects WHERE id = ?", (project_id,))
-    project = cur.fetchone()
-    
-    if not project:
+    row = cur.fetchone()
+    if row is None:
+        db.close()
         return None
-    
-    # Get tasks for this project
-    cur.execute("SELECT id, title, details, status, created_at, updated_at FROM tasks WHERE project_id = ?", (project_id,))
-    tasks = cur.fetchall()
-    return {
-        "id": project[0],
-        "name": project[1],
-        "description": project[2],
-        "created_at": project[3],
-        "updated_at": project[4],
-        "tasks": tasks
-    }
+
+    project = dict(row)
+
+    cur.execute("""
+    SELECT id, project_id, title, details, status, due_date, created_at, updated_at
+    FROM tasks
+    WHERE project_id = ?
+    ORDER BY id
+    """, (project_id,))
+    rows = cur.fetchall()
+    tasks = []
+    for x in rows:
+        tasks.append(dict(x))
+
+    project["tasks"] = tasks
+    db.close()
+    return project
 
 
-def update_task(task_id, title=None, details=None, status=None):
-    """Update a task's title, details, or status"""
-    conn = get_db_connection()
-    cur = conn.cursor()
-    
-    updates = []
-    params = []
-    
-    if title is not None:
-        updates.append("title = ?")
-        params.append(title)
-    if details is not None:
-        updates.append("details = ?")
-        params.append(details)
-    if status is not None:
-        updates.append("status = ?")
-        params.append(status)
-    
-    if not updates:
-        return  # Nothing to update
-    
-    params.append(task_id)
-    query = f"UPDATE tasks SET {', '.join(updates)}, updated_at = datetime('now') WHERE id = ?"
-    cur.execute(query, params)
-    cur.execute("UPDATE projects SET updated_at = datetime('now') WHERE id = (SELECT project_id FROM tasks WHERE id = ?)", (task_id,))
-    conn.commit()
-    # forgot which one to close so closed both
-    # i shouldnt have to close the connection here because it is cached and shared across threads, closing it would cause issues when other parts of the app try to use it later, so I will just close the cursor and leave the connection open for reuse.    
+def update_project(project_id, name=None, description=None, db_path=DB_NAME):
+    db = get_db_connection(db_path)
+    cur = db.cursor()
 
-def update_project(project_id, name=None, description=None):
-    """Update a project's name or description"""
-    conn = get_db_connection()
-    cur = conn.cursor()
-    
-    updates = []
-    params = []
-    
-    if name is not None:
-        updates.append("name = ?")
-        params.append(name)
-    if description is not None:
-        updates.append("description = ?")
-        params.append(description)
-    
-    if not updates:
-        return  # Nothing to update
-    
-    params.append(project_id)
-    query = f"UPDATE projects SET {', '.join(updates)}, updated_at = datetime('now') WHERE id = ?"
-    cur.execute(query, params)
-    conn.commit()
-    # i shouldnt have to close the connection here because it is cached and shared across threads, closing it would cause issues when other parts of the app try to use it later, so I will just close the cursor and leave the connection open for reuse.    
+    if name is not None and description is not None:
+        cur.execute(
+            "UPDATE projects SET name = ?, description = ?, updated_at = datetime('now') WHERE id = ?",
+            (name, description, project_id),
+        )
+    elif name is not None:
+        cur.execute(
+            "UPDATE projects SET name = ?, updated_at = datetime('now') WHERE id = ?",
+            (name, project_id),
+        )
+    elif description is not None:
+        cur.execute(
+            "UPDATE projects SET description = ?, updated_at = datetime('now') WHERE id = ?",
+            (description, project_id),
+        )
 
-## now delete delete a project and all its associated tasks and logs
-def delete_project(project_id): 
-    # this will obivously add projects to the db 😅
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute("DELETE FROM logs WHERE task_id IN (SELECT id FROM tasks WHERE project_id = ?)", (project_id,))
-    cur.execute("DELETE FROM tasks WHERE project_id = ?", (project_id,))
+    db.commit()
+    db.close()
+
+
+def delete_project(project_id, db_path=DB_NAME):
+    db = get_db_connection(db_path)
+    cur = db.cursor()
     cur.execute("DELETE FROM projects WHERE id = ?", (project_id,))
-    conn.commit()
-    import streamlit as st
-    st.rerun()
-# I will not close the connection like I did last time.
+    db.commit()
+    db.close()
 
-def add_task(project_id, title, details="", status="pending"):
-    """Add a new task to a project"""
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute("INSERT INTO tasks (project_id, title, details, status) VALUES (?, ?, ?, ?)", 
-                (project_id, title, details, status))
-    task_id = cur.lastrowid
+
+def add_task(project_id, title, details="", status="pending", due_date=None, db_path=DB_NAME):
+    if status not in STATUSES:
+        status = "pending"
+
+    db = get_db_connection(db_path)
+    cur = db.cursor()
+    cur.execute("""
+    INSERT INTO tasks (project_id, title, details, status, due_date)
+    VALUES (?, ?, ?, ?, ?)
+    """, (project_id, title, details, status, due_date))
+    num = cur.lastrowid
     cur.execute("UPDATE projects SET updated_at = datetime('now') WHERE id = ?", (project_id,))
-    conn.commit()
-    return task_id
+    db.commit()
+    db.close()
+    return num
 
-def get_task_by_id(task_id):
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute("SELECT id, title, details, status, created_at, updated_at FROM tasks WHERE id = ?", (task_id,))
-    task = cur.fetchone()
-    if task:
-        return {
-            "id": task[0],
-            "title": task[1],
-            "details": task[2],
-            "status": task[3],
-            "created_at": task[4],
-            "updated_at": task[5]
-        }
-    return None
+
+def update_task(task_id, title=None, details=None, status=None, due_date=None, db_path=DB_NAME):
+    if status is not None and status not in STATUSES:
+        status = "pending"
+
+    db = get_db_connection(db_path)
+    cur = db.cursor()
+
+    if title is not None:
+        cur.execute("UPDATE tasks SET title = ?, updated_at = datetime('now') WHERE id = ?", (title, task_id))
+    if details is not None:
+        cur.execute("UPDATE tasks SET details = ?, updated_at = datetime('now') WHERE id = ?", (details, task_id))
+    if status is not None:
+        cur.execute("UPDATE tasks SET status = ?, updated_at = datetime('now') WHERE id = ?", (status, task_id))
+    if due_date is not None:
+        if due_date == "":
+            due_date = None
+        cur.execute("UPDATE tasks SET due_date = ?, updated_at = datetime('now') WHERE id = ?", (due_date, task_id))
+
+    cur.execute(
+        "UPDATE projects SET updated_at = datetime('now') WHERE id = (SELECT project_id FROM tasks WHERE id = ?)",
+        (task_id,),
+    )
+    db.commit()
+    db.close()
+
+
+def get_task_by_id(task_id, db_path=DB_NAME):
+    db = get_db_connection(db_path)
+    cur = db.cursor()
+    cur.execute("""
+    SELECT id, project_id, title, details, status, due_date, created_at, updated_at
+    FROM tasks
+    WHERE id = ?
+    """, (task_id,))
+    row = cur.fetchone()
+    db.close()
+    if row is None:
+        return None
+    return dict(row)
+
+
+def get_tasks_by_status(project_id, db_path=DB_NAME):
+    # put tasks into the right pile
+    project = get_project_by_id(project_id, db_path)
+    piles = {"pending": [], "in progress": [], "completed": []}
+    if project is None:
+        return piles
+
+    for task in project["tasks"]:
+        status = task["status"]
+        if status not in piles:
+            status = "pending"
+        piles[status].append(task)
+    return piles
+
+
+def add_log(task_id, message, db_path=DB_NAME):
+    db = get_db_connection(db_path)
+    cur = db.cursor()
+    cur.execute("INSERT INTO logs (task_id, message) VALUES (?, ?)", (task_id, message))
+    num = cur.lastrowid
+    db.commit()
+    db.close()
+    return num
+
+
+def get_logs_for_task(task_id, db_path=DB_NAME):
+    db = get_db_connection(db_path)
+    cur = db.cursor()
+    cur.execute("SELECT id, task_id, message, created_at FROM logs WHERE task_id = ? ORDER BY id", (task_id,))
+    rows = cur.fetchall()
+    stuff = []
+    for row in rows:
+        stuff.append(dict(row))
+    db.close()
+    return stuff
