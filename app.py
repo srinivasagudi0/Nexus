@@ -55,14 +55,16 @@ if mode == "Project Management":
         files = st.file_uploader("Upload Project Files (optional, .zip format recommended)", type=["zip"])
         # call suppport extract zip
         if files is not None:
+            file_name = getattr(files, "name", "").lower()
             if file := extract_code(files):
-                if files.endswith(".zip"):
-                    extracted_code = extract_zip(files)
-                    st.success("Files uploaded and extracted successfully!")
-                    # just for debuggind
-                    st.code(extracted_code)
-                else:
-                    st.error("Please upload a .zip file for project files.")
+                pass  # Add any specific handling if needed
+            elif file_name.endswith(".zip"):
+                extracted_code = extract_zip(files)
+                st.success("Files uploaded and extracted successfully!")
+                # just for debugging
+                st.code(extracted_code)
+            else:
+                st.error("Please upload a .zip file for project files.")
         # do nothing
 
         #tasks_input = st.text_area("Tasks (one per line, format(please follow for now): title|details|status)")
@@ -140,6 +142,12 @@ if mode == "Project Management":
                 with right:
                     #st.markdown("<br>", unsafe_allow_html=True)
                     if st.button("Add +"):
-                        add_task_dialog(project['id'])            
-        
+                        add_task_dialog(project['id'])
+
+                    
+                  
+                
+
+
+
                 ## now that db is set and sent some projects into it shoudl be able to retrieve and view them here, next up is to make it
