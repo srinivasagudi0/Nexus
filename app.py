@@ -49,8 +49,22 @@ if mode == "Project Management":
     
     if mode == 'Create a New Project':
         st.subheader("Create a New Project")
-        project_name = st.text_input("Project Name")
-        project_description = st.text_area("Project Description")
+        project_name = st.text_input("Project Name*")
+        project_description = st.text_area("Project Description*")
+        # lets take in the project files and i have no idea how to save it but should be zip file as I have zip file extraction ready and can just save it in the db as blob or something, but for now lets just take in the tasks as text input and then later on we can add the file upload and make it look nice, but for now this is good enough to get the flow right and then we can improve it later on, also this way we can have a better flow for adding tasks to existing projects which is good for the ux, so for now just do text input for tasks and then later on we can add the file upload and make it look nice, but for now lets just take it in and do nothin
+        files = st.file_uploader("Upload Project Files (optional, .zip format recommended)", type=["zip"])
+        # call suppport extract zip
+        if files is not None:
+            if file := extract_code(files):
+                if files.endswith(".zip"):
+                    extracted_code = extract_zip(files)
+                    st.success("Files uploaded and extracted successfully!")
+                    # just for debuggind
+                    st.code(extracted_code)
+                else:
+                    st.error("Please upload a .zip file for project files.")
+        # do nothing
+
         #tasks_input = st.text_area("Tasks (one per line, format(please follow for now): title|details|status)")
         if st.button("Create Project"):
             if project_name and project_description:
@@ -126,10 +140,6 @@ if mode == "Project Management":
                 with right:
                     #st.markdown("<br>", unsafe_allow_html=True)
                     if st.button("Add +"):
-                        add_task_dialog(project['id'])
-                  
-                
-
-
-
+                        add_task_dialog(project['id'])            
+        
                 ## now that db is set and sent some projects into it shoudl be able to retrieve and view them here, next up is to make it
