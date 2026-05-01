@@ -53,19 +53,22 @@ if mode == "Project Management":
         project_description = st.text_area("Project Description*")
         # lets take in the project files and i have no idea how to save it but should be zip file as I have zip file extraction ready and can just save it in the db as blob or something, but for now lets just take in the tasks as text input and then later on we can add the file upload and make it look nice, but for now this is good enough to get the flow right and then we can improve it later on, also this way we can have a better flow for adding tasks to existing projects which is good for the ux, so for now just do text input for tasks and then later on we can add the file upload and make it look nice, but for now lets just take it in and do nothin
         files = st.file_uploader("Upload Project Files (optional, .zip format recommended)", type=["zip"])
-        # call suppport extract zip
-        if files is not None:
-            file_name = getattr(files, "name", "").lower()
-            if file := extract_code(files):
-                pass  # Add any specific handling if needed
-            elif file_name.endswith(".zip"):
-                extracted_code = extract_zip(files)
-                st.success("Files uploaded and extracted successfully!")
-                # just for debugging
-                st.code(extracted_code)
-            else:
-                st.error("Please upload a .zip file for project files.")
-        # do nothing
+        # add a uploadfile button
+        if st.button("Upload Files"):
+            # call support.extract_zip
+            with st.spinner("Uploading and extracting files..."):
+                if files is not None:
+                    file_name = getattr(files, "name", "").lower()
+                    if file := extract_code(files):
+                        pass  # Add any specific handling if needed
+                    elif file_name.endswith(".zip"):
+                        extracted_code = extract_zip(files)
+                        st.success("Files uploaded and extracted successfully!")
+                        # just for debugging
+                        st.code(extracted_code)
+                    else:
+                        st.error("Please upload a .zip file for project files.")
+            # do nothing
 
         #tasks_input = st.text_area("Tasks (one per line, format(please follow for now): title|details|status)")
         if st.button("Create Project"):
